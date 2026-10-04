@@ -1,0 +1,10 @@
+# Secrets and company data: never commit
+.streamlit/secrets.toml
+data/
+*.xlsx
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
