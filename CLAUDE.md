@@ -43,6 +43,12 @@ Never read, print or commit the real secrets file. There is no test suite yet.
 `.streamlit/secrets.toml`, `data/` (item master), `*.xlsx`, `*.pdf`. `.gitignore` already covers these.
 On hosted deployments the disk is temporary, so the saved item master is lost on restart and must be re-uploaded.
 
+## Working with the user
+
+The user is not an experienced developer. Explain things in plain words and go one step at a time.
+After finishing any change to the code, ask whether they want to commit it. Never commit without a yes.
+Before committing, show which files changed and check that nothing from "Never commit" is included.
+
 ## Status
 
 Single commit on `main`, remote `origin`. No known open work was recorded when this file was written.
