@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
+import landing as landing_page
 import matcher
 import packing
 from excel_export import build_packing_workbook, build_workbook
@@ -22,6 +23,7 @@ h1 {margin-bottom: 0;}
 </style>
 """, unsafe_allow_html=True)
 
+
 MIME = {"pdf": "application/pdf", "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg"}
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -36,15 +38,12 @@ def secret(name: str):
 def require_login():
     """Optional shared-password gate: active only when APP_PASSWORD is configured."""
     pw = secret("APP_PASSWORD")
-    if not pw or st.session_state.get("authed"):
+    if st.session_state.get("authed"):
+        landing_page.inject_css()
         return
-    st.title("Docpro")
-    entered = st.text_input("Password", type="password")
-    if entered:
-        if hmac.compare_digest(entered, str(pw)):
-            st.session_state["authed"] = True
-            st.rerun()
-        st.error("Incorrect password")
+    if landing_page.landing(bool(pw), lambda e: hmac.compare_digest(e, str(pw))):
+        st.session_state["authed"] = True
+        st.rerun()
     st.stop()
 
 
@@ -384,4 +383,5 @@ if not api_key:
 
 mode = st.sidebar.radio("Document type", ["Packing lists", "Invoices"], horizontal=True)
 st.sidebar.divider()
+landing_page.app_bar()
 (packing_page if mode == "Packing lists" else invoice_page)(api_key)
