@@ -7,6 +7,8 @@ CSS = """
 
 #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] {visibility: hidden; height: 0;}
 header[data-testid="stHeader"] {background: transparent;}
+/* the reopen-sidebar button lives inside the hidden toolbar, so show it again */
+[data-testid="stExpandSidebarButton"] {visibility: visible;}
 
 .dp-page .block-container, .block-container {max-width: 1200px;}
 html, body, [class*="css"], .stApp {font-family: 'Inter', system-ui, sans-serif;}
