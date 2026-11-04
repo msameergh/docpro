@@ -63,7 +63,8 @@ def item_master_panel(master: pd.DataFrame):
             "- **Item Code**: your internal code for the product\n"
             "- **Item Description**: the product name *as it appears on the packing list*, "
             "including brand and pack size (e.g. `... AL ISLAMI BRAND 900G X 12 = 10.80 KG`)\n\n"
-            "One row per product. Other columns are ignored. Excel (.xlsx) or CSV."
+            "One row per product. Optional: item name, category, and kg per carton "
+            "(used to check weights). Other columns are ignored. Excel (.xlsx) or CSV."
         )
         st.download_button("Download template", packing.template_bytes(), "item_master_template.xlsx",
                            mime=XLSX, use_container_width=True)
@@ -82,10 +83,20 @@ def item_master_panel(master: pd.DataFrame):
                 cols = list(raw.columns)
                 code_col = st.selectbox("Item code column", cols, index=cols.index(gc))
                 desc_col = st.selectbox("Item description column", cols, index=cols.index(gd))
+                gn, gc2, gk = packing.guess_optional(raw, [code_col, desc_col])
+                none = "(none)"
+                opt = [none] + cols
+                name_col = st.selectbox("Item name column (optional)", opt, index=opt.index(gn) if gn else 0)
+                cat_col = st.selectbox("Category column (optional)", opt, index=opt.index(gc2) if gc2 else 0)
+                kg_col = st.selectbox("Kg per carton column (optional)", opt, index=opt.index(gk) if gk else 0)
                 if code_col == desc_col:
                     st.error("Choose two different columns.")
                 else:
-                    new, stats = packing.build_master(raw, code_col, desc_col)
+                    new, stats = packing.build_master(
+                        raw, code_col, desc_col,
+                        None if name_col == none else name_col,
+                        None if cat_col == none else cat_col,
+                        None if kg_col == none else kg_col)
                     st.caption(f"Preview: {len(new)} valid products")
                     st.dataframe(new.head(5), hide_index=True, use_container_width=True)
                     if stats["blank_dropped"]:
@@ -213,7 +224,7 @@ def packing_page(api_key: str):
         lines = edited.copy()
         lines["item_description"] = [names.get(c) or d for c, d in zip(lines["item_code"], lines["item_description"])]
 
-    checks = packing.validate_packing(lines)
+    checks = packing.validate_packing(lines, master)
     status = packing.status_by_row(lines, checks)
 
     summary = (

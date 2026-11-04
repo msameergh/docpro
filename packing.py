@@ -33,17 +33,34 @@ def guess_columns(df: pd.DataFrame) -> tuple[str, str]:
     cols = list(df.columns)
     code = next((c for c in cols if "code" in c.lower() or c.lower() in ("sku", "item", "item no", "item #")), cols[0])
     rest = [c for c in cols if c != code]
-    desc = next((c for c in rest if "desc" in c.lower() or "name" in c.lower() or "product" in c.lower()),
-                rest[0] if rest else code)
+    # "description" beats "name", so 'Item Description' is chosen over 'Item Name'
+    desc = (next((c for c in rest if "desc" in c.lower()), None)
+            or next((c for c in rest if "name" in c.lower() or "product" in c.lower()), None)
+            or (rest[0] if rest else code))
     return code, desc
 
 
-def build_master(df: pd.DataFrame, code_col: str, desc_col: str) -> tuple[pd.DataFrame, dict]:
+def guess_optional(df: pd.DataFrame, used: list) -> tuple[str | None, str | None, str | None]:
+    """Best guess of the optional (name, category, kg-per-carton) columns. None if not found."""
+    rest = [c for c in df.columns if c not in used]
+    name = next((c for c in rest if "name" in c.lower()), None)
+    cat = next((c for c in rest if "categ" in c.lower() or "group" in c.lower()), None)
+    kg = next((c for c in rest if "kg" in c.lower() and ("ctn" in c.lower() or "carton" in c.lower())), None)
+    return name, cat, kg
+
+
+def build_master(df: pd.DataFrame, code_col: str, desc_col: str, name_col: str | None = None,
+                 cat_col: str | None = None, kg_col: str | None = None) -> tuple[pd.DataFrame, dict]:
     """Clean the chosen columns into the item master. Returns (master, stats)."""
-    out = df[[code_col, desc_col]].rename(columns={code_col: "item_code", desc_col: "item_description"})
+    picks = {code_col: "item_code", desc_col: "item_description"}
+    for col, new in ((name_col, "item_name"), (cat_col, "category"), (kg_col, "kg_per_ctn")):
+        if col and col not in picks:
+            picks[col] = new
+    out = df[list(picks)].rename(columns=picks)
     total = len(out)
-    out = out.dropna().astype(str).apply(lambda s: s.str.strip())
+    out = out.dropna(subset=["item_code", "item_description"]).astype(str).apply(lambda s: s.str.strip())
     out = out[(out["item_code"] != "") & (out["item_description"] != "")]
+    out = out.replace({"nan": "", "None": ""})
     blank = total - len(out)
     dup_desc = int(out.duplicated("item_description").sum())
     out = out.drop_duplicates("item_description")
@@ -84,6 +101,14 @@ def get_master() -> pd.DataFrame:
     if MASTER_PATH.exists():
         return pd.read_csv(MASTER_PATH, dtype=str)
     return pd.DataFrame(columns=["item_code", "item_description"])
+
+
+def kg_per_ctn_lookup(master: pd.DataFrame) -> dict:
+    """{item_code: kg per carton} from the master's optional kg_per_ctn column."""
+    if master is None or "kg_per_ctn" not in master.columns:
+        return {}
+    kg = pd.to_numeric(master["kg_per_ctn"].astype(str).str.replace(",", ".", regex=False), errors="coerce")
+    return {c: float(k) for c, k in zip(master["item_code"], kg) if pd.notna(k) and k > 0}
 
 
 def lookup_codes(descriptions: pd.Series, master: pd.DataFrame, existing: pd.Series = None):
@@ -152,8 +177,9 @@ def case_weight(description) -> float | None:
     return float(m.group(1).replace(",", ".")) if m else None
 
 
-def validate_packing(df: pd.DataFrame) -> pd.DataFrame:
+def validate_packing(df: pd.DataFrame, master: pd.DataFrame = None) -> pd.DataFrame:
     rows = []
+    master_kg = kg_per_ctn_lookup(master)
     for i, r in df.reset_index(drop=True).iterrows():
         label = str(r["item_description"] or "")[:60] or "(no description)"
 
@@ -171,8 +197,9 @@ def validate_packing(df: pd.DataFrame) -> pd.DataFrame:
             add("Error", "Missing or zero Qty CTNs")
         if pd.isna(r["qty_kgs"]) or r["qty_kgs"] <= 0:
             add("Error", "Missing or zero Qty Kgs")
-        # the pack weight (e.g. '= 16KG') is in the supplier's wording, not the master's
-        cw = case_weight(r.get("document_description")) or case_weight(r["item_description"])
+        # Prefer the master's kg per carton; else parse '= 16KG' from the descriptions
+        cw = (master_kg.get(r["item_code"]) or case_weight(r.get("document_description"))
+              or case_weight(r["item_description"]))
         if cw and pd.notna(r["qty_ctns"]) and pd.notna(r["qty_kgs"]):
             expected = r["qty_ctns"] * cw
             if abs(expected - r["qty_kgs"]) > max(0.05, 0.001 * expected):

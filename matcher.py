@@ -75,9 +75,14 @@ def match_descriptions(api_key: str, descriptions: List[str], master: pd.DataFra
     for start in range(0, len(unique), CHUNK):
         chunk = unique[start:start + CHUNK]
         cand = _candidates(chunk, master)
-        master_txt = "\n".join(f"{c} | {d}" for c, d in zip(cand["item_code"], cand["item_description"]))
+        def line(r):
+            extra = [f"{lbl}: {r[k]}" for k, lbl in (("item_name", "name"), ("category", "category"),
+                                                    ("kg_per_ctn", "kg/ctn"))
+                     if k in cand.columns and isinstance(r[k], str) and r[k].strip()]
+            return " | ".join([str(r["item_code"]), str(r["item_description"])] + extra)
+        master_txt = "\n".join(line(r) for _, r in cand.iterrows())
         docs_txt = "\n".join(f"{i}. {d}" for i, d in enumerate(chunk, start=1))
-        prompt = f"{PROMPT}\n\nITEM MASTER (code | description):\n{master_txt}\n\nDOCUMENT ITEMS:\n{docs_txt}"
+        prompt = f"{PROMPT}\n\nITEM MASTER (code | description | optional name, category, kg/ctn):\n{master_txt}\n\nDOCUMENT ITEMS:\n{docs_txt}"
         batch = generate_from_text(api_key, prompt, MatchBatch)
         for m in batch.matches:
             if not (1 <= m.index <= len(chunk)):
