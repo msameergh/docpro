@@ -21,6 +21,7 @@ Never read, print or commit the real secrets file. There is no test suite yet.
 | File | Role |
 |---|---|
 | `app.py` | UI, login gate (`require_login`), both pages, item master sidebar panel |
+| `landing.py` | Marketing-style landing page ("Launch workspace" button) and the branded app bar shown inside the app |
 | `extractor.py` | Gemini calls. Pydantic schemas (`Invoice`, `PackingList`, ...), prompts, `_generate` with retries, `generate_from_text` |
 | `matcher.py` | Maps packing-list descriptions to item master codes via Gemini, with a difflib `fallback_match` |
 | `packing.py` | Item master load/save (`data/item_master.csv`), code lookup, row assembly, packing validation. Pure pandas |
@@ -43,6 +44,18 @@ Never read, print or commit the real secrets file. There is no test suite yet.
 `.streamlit/secrets.toml`, `data/` (item master), `*.xlsx`, `*.pdf`. `.gitignore` already covers these.
 On hosted deployments the disk is temporary, so the saved item master is lost on restart and must be re-uploaded.
 
+## Deployment
+
+- Hosted on Streamlit Community Cloud (share.streamlit.io), signed in with the user's GitHub account.
+- GitHub repo: `msameergh/docpro` (remote `origin`), branch `main`, main file `app.py`.
+- `GEMINI_API_KEY` and `APP_PASSWORD` live only in the Streamlit app's Settings > Secrets, never in the repo.
+- Update flow: commit, `git push origin main`, Streamlit redeploys on its own in 1-2 minutes. Use Manage app > Reboot app if it does not.
+- Pushing uses the user's saved GitHub login (Git Credential Manager). No GitHub CLI or GitHub Desktop is installed.
+- Full steps and the demo checklist are in `DEPLOY.md`.
+
+**Lesson (2026-11-01):** making the repo private broke the live app. The Streamlit logs showed "Cloning repository... Failed" and "Failed to download the sources". Making the repo public and rebooting the app fixed it.
+To go private again, first give Streamlit access to `docpro` at github.com/settings/installations (Streamlit > Configure > Repository access), then reboot the app and confirm it loads.
+
 ## Working with the user
 
 The user is not an experienced developer. Explain things in plain words and go one step at a time.
@@ -51,9 +64,9 @@ Before committing, show which files changed and check that nothing from "Never c
 
 ## Status
 
-Single commit on `main`, remote `origin`. No known open work was recorded when this file was written.
-Add current tasks and decisions below as they come up.
+Live on Streamlit Community Cloud with the landing page and branded app bar (all commits pushed to `origin/main` on 2026-11-01).
+The GitHub repo is currently public. Add current tasks and decisions below as they come up.
 
 ## Open work
 
-- (none recorded)
+- Optional: make the repo private again, after giving Streamlit access (see Deployment).
