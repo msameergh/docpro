@@ -39,8 +39,14 @@ def require_login():
     """Optional shared-password gate: active only when APP_PASSWORD is configured."""
     pw = secret("APP_PASSWORD")
     if st.session_state.get("authed"):
-        landing_page.inject_css()
-        return
+        if not st.session_state.get("show_home"):
+            landing_page.inject_css()
+            return
+        # Back on the home page: already signed in, so no password again. Work is kept.
+        if landing_page.landing(False, lambda e: True):
+            st.session_state["show_home"] = False
+            st.rerun()
+        st.stop()
     if landing_page.landing(bool(pw), lambda e: hmac.compare_digest(e, str(pw))):
         st.session_state["authed"] = True
         st.rerun()
@@ -392,6 +398,9 @@ if not api_key:
     st.error("GEMINI_API_KEY is not configured. Add it to .streamlit/secrets.toml.")
     st.stop()
 
+if st.sidebar.button("← Back to home", use_container_width=True):
+    st.session_state["show_home"] = True
+    st.rerun()
 mode = st.sidebar.radio("Document type", ["Packing lists", "Invoices"], horizontal=True)
 st.sidebar.divider()
 landing_page.app_bar()
