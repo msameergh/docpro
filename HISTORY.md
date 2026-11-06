@@ -8,6 +8,8 @@ No passwords or keys in this file. The repo is public.
 - Cause: landing.py hides Streamlit's top toolbar, and the "reopen sidebar" arrow lives inside it, so it was hidden too.
 - Fix: one CSS line in landing.py makes that arrow visible again. Tested: collapse the sidebar, the arrow shows, click it, sidebar returns.
 - Tip: a browser refresh (F5) also brings the sidebar back.
+- The hosted app had the same problem even after the fix was pushed. Checked the live page: it still had the old CSS. Signed in to share.streamlit.io with GitHub, used Manage app > Reboot app, and the arrow appeared.
+- Lesson: if a push does not show up online, reboot the app. The hosted Streamlit version can differ from the local one (requirements.txt has no pin).
 
 ## 2026-11-01
 - Came back after about a month. The live app was broken.

@@ -56,6 +56,9 @@ On hosted deployments the disk is temporary, so the saved item master is lost on
 **Lesson (2026-11-01):** making the repo private broke the live app. The Streamlit logs showed "Cloning repository... Failed" and "Failed to download the sources". Making the repo public and rebooting the app fixed it.
 To go private again, first give Streamlit access to `docpro` at github.com/settings/installations (Streamlit > Configure > Repository access), then reboot the app and confirm it loads.
 
+**Lesson (2026-11-04):** a push did not update the live app on its own (the old code kept running until Manage app > Reboot app). After pushing, if a change is not visible online, reboot first. A quick check from outside: load the app page and look for the new CSS or text.
+Streamlit Cloud installs `streamlit>=1.40` (no pin), so the hosted version can differ from the local one (local was 1.60.0 on 2026-11-04). The sidebar's reopen button (`stExpandSidebarButton`) sits inside the toolbar that `landing.py` hides, so `landing.py` re-shows it; keep that rule if the toolbar CSS is edited.
+
 ## Working with the user
 
 The user is not an experienced developer. Explain things in plain words and go one step at a time.

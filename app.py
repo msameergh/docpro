@@ -18,7 +18,7 @@ st.set_page_config(page_title="Docpro | Document Extraction", page_icon=":materi
 st.markdown("""
 <style>
 .block-container {padding-top: 2rem; max-width: 1400px;}
-[data-testid="stMetric"] {background: #F5F7FA; border: 1px solid #E3E8EF; padding: 14px 18px; border-radius: 10px;}
+[data-testid="stMetric"] {background: #FBF6F4; border: 1px solid #F0E2DD; padding: 14px 18px; border-radius: 10px;}
 h1 {margin-bottom: 0;}
 </style>
 """, unsafe_allow_html=True)
